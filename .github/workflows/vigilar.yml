@@ -18,7 +18,7 @@ jobs:
           key: estado-${{ github.run_id }}
           restore-keys: estado-
       - run: pip install requests
-      - run: python vigilar.py
+      - run: python -u vigilar.py
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
