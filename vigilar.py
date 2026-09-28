@@ -43,6 +43,11 @@ def renovar():
             "refresh_token": REFRESH})
         print(f"  renovacion de sesion: HTTP {r.status_code}")
         if r.status_code != 200:
+            try:
+                e = r.json()
+                print("   motivo:", e.get("error"), "-", str(e.get("error_description"))[:120])
+            except Exception:
+                print("   respuesta no JSON:", r.headers.get("server"), r.text[:150].replace("\n", " "))
             return False
         d = r.json()
         sesion["token"] = d["access_token"]
