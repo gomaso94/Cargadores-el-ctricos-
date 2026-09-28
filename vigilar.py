@@ -89,6 +89,9 @@ def telegram(texto):
 
 
 def main():
+    import hashlib
+    print("huella del token de renovacion:", len(REFRESH), "caracteres,",
+          hashlib.sha256(REFRESH.encode()).hexdigest()[:8])
     try:
         st = json.load(open(ESTADO))
     except Exception:
