@@ -99,6 +99,8 @@ def main():
     st.setdefault("anterior", {})
     st.setdefault("fallos", 0)
     st.setdefault("avisado_fallo", False)
+    st.setdefault("candidato", {})
+    st.setdefault("repeticiones", {})
     if not st.get("v3"):
         telegram("✅ Vigilante activo (con tu sesión): Puertas de San José y Paseo Alfonso XIII.")
         st["v3"] = True
@@ -117,11 +119,25 @@ def main():
             if st["avisado_fallo"]:
                 telegram("✅ Vuelvo a leer el estado de los cargadores.")
             st["fallos"], st["avisado_fallo"] = 0, False
+            hora = time.strftime("%H:%M", time.gmtime(time.time() + 2 * 3600))
             for cid, estado in estados.items():
                 libre = estado == "AVAILABLE"
-                if st["anterior"].get(str(cid)) is False and libre:
-                    telegram(f"⚡ {CARGADORES[cid]} acaba de quedar LIBRE.")
-                st["anterior"][str(cid)] = libre
+                k = str(cid)
+                # Solo se da por bueno un cambio si se repite en 2 lecturas seguidas
+                if st["candidato"].get(k) == libre:
+                    st["repeticiones"][k] = st["repeticiones"].get(k, 0) + 1
+                else:
+                    st["candidato"][k] = libre
+                    st["repeticiones"][k] = 1
+                if st["repeticiones"][k] < 2:
+                    continue
+                previo = st["anterior"].get(k)
+                if previo is not None and previo != libre:
+                    if libre:
+                        telegram(f"🟢 {CARGADORES[cid]}: LIBRE ({hora})")
+                    else:
+                        telegram(f"🔴 {CARGADORES[cid]}: OCUPADO ({hora}) [{estado}]")
+                st["anterior"][k] = libre
         json.dump(st, open(ESTADO, "w"))
         time.sleep(60)
 
