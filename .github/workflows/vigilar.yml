@@ -1,7 +1,7 @@
 name: Vigilar cargadores
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 concurrency:
   group: vigilar
