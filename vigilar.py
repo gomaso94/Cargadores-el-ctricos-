@@ -3,6 +3,8 @@ cuando pasan de OCUPADO a LIBRE. Usa la sesion del usuario (token de
 renovacion en el secreto IBERDROLA_REFRESH_TOKEN). Nunca imprime tokens.
 Pensado para GitHub Actions: cada ejecucion vigila ~55 min (1 consulta/min)."""
 import json, os, time, requests
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 CARGADORES = {145612: "Plaza Puertas de San José", 145613: "Paseo Alfonso XIII"}
 TOKEN_TG = os.environ["TELEGRAM_TOKEN"]
@@ -119,7 +121,7 @@ def main():
             if st["avisado_fallo"]:
                 telegram("✅ Vuelvo a leer el estado de los cargadores.")
             st["fallos"], st["avisado_fallo"] = 0, False
-            hora = time.strftime("%H:%M", time.gmtime(time.time() + 2 * 3600))
+            hora = datetime.now(ZoneInfo("Europe/Madrid")).strftime("%H:%M")
             for cid, estado in estados.items():
                 libre = estado == "AVAILABLE"
                 k = str(cid)
