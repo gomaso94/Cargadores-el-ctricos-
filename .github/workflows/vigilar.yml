@@ -1,15 +1,25 @@
 name: Vigilar cargadores
 on:
-  schedule:
-    - cron: "*/10 * * * *"
   workflow_dispatch:
+    inputs:
+      horas:
+        description: "Horas a vigilar (por ejemplo 3)"
+        default: "4"
+        required: true
+      hasta:
+        description: "(interno, dejar vacío)"
+        default: ""
+        required: false
 concurrency:
   group: vigilar
-  cancel-in-progress: false
+  cancel-in-progress: true
+permissions:
+  actions: write
+  contents: read
 jobs:
   vigilar:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache/restore@v4
@@ -17,14 +27,33 @@ jobs:
           path: estado.json
           key: estado-${{ github.run_id }}
           restore-keys: estado-
+      - name: Calcular fin
+        id: fin
+        run: |
+          if [ -n "${{ inputs.hasta }}" ]; then
+            echo "hasta=${{ inputs.hasta }}" >> "$GITHUB_OUTPUT"; echo "primera=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "hasta=$(python3 -c 'import time;print(int(time.time()+float("${{ inputs.horas }}".replace(",","."))*3600))')" >> "$GITHUB_OUTPUT"
+            echo "primera=1" >> "$GITHUB_OUTPUT"
+          fi
       - run: pip install requests
       - run: python -u vigilar.py
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           IBERDROLA_REFRESH_TOKEN: ${{ secrets.IBERDROLA_REFRESH_TOKEN }}
+          HASTA: ${{ steps.fin.outputs.hasta }}
+          PRIMERA: ${{ steps.fin.outputs.primera }}
       - if: always()
         uses: actions/cache/save@v4
         with:
           path: estado.json
           key: estado-${{ github.run_id }}
+      - name: Seguir en otra ejecucion si no ha terminado
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(cat seguir 2>/dev/null)" = "si" ]; then
+            gh workflow run vigilar.yml --ref main -f horas=0 -f hasta=${{ steps.fin.outputs.hasta }}
+          fi
